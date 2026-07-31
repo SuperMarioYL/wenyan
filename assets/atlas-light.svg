@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="360" viewBox="0 0 880 360" role="img" aria-label="wenyan architecture: 中文 prompt to Profiler to Strategy suite to Picker to Claude Code Skill to Regression harness">
+  <defs>
+    <linearGradient id="atlasBgLight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7f9fc"/>
+      <stop offset="1" stop-color="#eaf0f8"/>
+    </linearGradient>
+    <marker id="arrowLight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/>
+    </marker>
+    <style>
+      .nodel { fill:#ffffff; stroke-width:1.6; }
+      .labl { font-family:'PingFang SC','Noto Sans CJK SC',system-ui,sans-serif; font-size:15px; font-weight:600; fill:#1e293b; text-anchor:middle; }
+      .subl { font-family:system-ui,sans-serif; font-size:10px; fill:#64748b; text-anchor:middle; }
+      .connl { fill:none; stroke-width:2; stroke-dasharray:6 4; }
+    </style>
+  </defs>
+
+  <rect width="880" height="360" fill="url(#atlasBgLight)" rx="18"/>
+
+  <!-- connectors (drawn in data-flow direction) -->
+  <path class="connl" d="M250,95 L338,95" stroke="#0d9488" marker-end="url(#arrowLight)"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="0.9s" repeatCount="indefinite"/></path>
+  <path class="connl" d="M540,95 L628,95" stroke="#0d9488" marker-end="url(#arrowLight)"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="0.9s" repeatCount="indefinite"/></path>
+  <path class="connl" d="M730,123 L730,215" stroke="#7c3aed" marker-end="url(#arrowLight)"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite"/></path>
+  <path class="connl" d="M630,245 L542,245" stroke="#7c3aed" marker-end="url(#arrowLight)"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="0.9s" repeatCount="indefinite"/></path>
+  <path class="connl" d="M340,245 L252,245" stroke="#0d9488" marker-end="url(#arrowLight)"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="0.9s" repeatCount="indefinite"/></path>
+
+  <!-- packet dots travelling along each connector -->
+  <circle r="4" fill="#7c3aed"><animateMotion dur="1.8s" repeatCount="indefinite" path="M250,95 L338,95"/></circle>
+  <circle r="4" fill="#14b8a6"><animateMotion dur="1.8s" begin="0.6s" repeatCount="indefinite" path="M540,95 L628,95"/></circle>
+  <circle r="4" fill="#7c3aed"><animateMotion dur="1.8s" begin="1.2s" repeatCount="indefinite" path="M730,123 L730,215"/></circle>
+  <circle r="4" fill="#14b8a6"><animateMotion dur="1.8s" begin="0.3s" repeatCount="indefinite" path="M630,245 L542,245"/></circle>
+  <circle r="4" fill="#7c3aed"><animateMotion dur="1.8s" begin="0.9s" repeatCount="indefinite" path="M340,245 L252,245"/></circle>
+
+  <!-- nodes (breathing, staggered) -->
+  <g><animate attributeName="opacity" values="0.85;1;0.85" dur="3s" begin="0s" repeatCount="indefinite"/>
+    <rect class="nodel" x="50" y="67" width="200" height="56" rx="12" stroke="#14b8a6"/>
+    <text class="labl" x="150" y="92">中文 prompt</text><text class="subl" x="150" y="110">coding-agent 输入</text>
+  </g>
+  <g><animate attributeName="opacity" values="0.85;1;0.85" dur="3s" begin="-0.5s" repeatCount="indefinite"/>
+    <rect class="nodel" x="340" y="67" width="200" height="56" rx="12" stroke="#7c3aed"/>
+    <text class="labl" x="440" y="92">Profiler</text><text class="subl" x="440" y="110">transformers · DeepSeek/Qwen/GLM</text>
+  </g>
+  <g><animate attributeName="opacity" values="0.85;1;0.85" dur="3s" begin="-1s" repeatCount="indefinite"/>
+    <rect class="nodel" x="630" y="67" width="200" height="56" rx="12" stroke="#14b8a6"/>
+    <text class="labl" x="730" y="92">Strategy suite</text><text class="subl" x="730" y="110">助词 · 文言 · 成语</text>
+  </g>
+  <g><animate attributeName="opacity" values="0.85;1;0.85" dur="3s" begin="-1.5s" repeatCount="indefinite"/>
+    <rect class="nodel" x="630" y="217" width="200" height="56" rx="12" stroke="#7c3aed"/>
+    <text class="labl" x="730" y="242">Picker</text><text class="subl" x="730" y="260">min(net_tokens) per model</text>
+  </g>
+  <g><animate attributeName="opacity" values="0.85;1;0.85" dur="3s" begin="-2s" repeatCount="indefinite"/>
+    <rect class="nodel" x="340" y="217" width="200" height="56" rx="12" stroke="#7c3aed" stroke-width="2.4"/>
+    <text class="labl" x="440" y="242">Claude Code Skill</text><text class="subl" x="440" y="260">applies measured winner</text>
+  </g>
+  <g><animate attributeName="opacity" values="0.85;1;0.85" dur="3s" begin="-2.5s" repeatCount="indefinite"/>
+    <rect class="nodel" x="50" y="217" width="200" height="56" rx="12" stroke="#14b8a6"/>
+    <text class="labl" x="150" y="242">Regression harness</text><text class="subl" x="150" y="260">net savings · task-success</text>
+  </g>
+
+  <text x="440" y="335" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" fill="#64748b">single Python process · real transformers tokenizers · one markdown Skill</text>
+</svg>

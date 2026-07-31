@@ -1,0 +1,22 @@
+# wenyan model registry — maps each 国产模型 (domestic Chinese model) to its
+# real HuggingFace tokenizer repo so the profiler measures actual subword splits.
+# Only tokenizer-bearing repos are referenced; no model weights are downloaded.
+#
+# Selection note (m1): the three repos below load with vanilla `transformers`
+# `AutoTokenizer` (fast tokenizer path) and need no extra backends, keeping the
+# per-tokenizer thesis on real subword splits with zero deps beyond key_deps.
+
+[[models]]
+name = "deepseek"
+repo = "deepseek-ai/deepseek-coder-1.3b-base"
+family = "DeepSeek BBPE (32K)"
+
+[[models]]
+name = "qwen"
+repo = "Qwen/Qwen2.5-0.5B"
+family = "Qwen2 BBPE (151K)"
+
+[[models]]
+name = "glm"
+repo = "zai-org/GLM-4-9B-0414"
+family = "GLM-4 BBPE (151K)"

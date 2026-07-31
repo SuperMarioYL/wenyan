@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="360" viewBox="0 0 880 360" role="img" aria-label="wenyan architecture: 中文 prompt to Profiler to Strategy suite to Picker to Claude Code Skill to Regression harness">
+  <defs>
+    <linearGradient id="atlasBgDark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#141a33"/>
+    </linearGradient>
+    <marker id="arrowDark" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2dd4bf"/>
+    </marker>
+    <style>
+      .node { fill:#1b2238; stroke-width:1.6; }
+      .lab { font-family:'PingFang SC','Noto Sans CJK SC',system-ui,sans-serif; font-size:15px; font-weight:600; fill:#e2e8f0; text-anchor:middle; }
+      .sub { font-family:system-ui,sans-serif; font-size:10px; fill:#94a3b8; text-anchor:middle; }
+      .conn { fill:none; stroke-width:2; stroke-dasharray:6 4; }
+    </style>
+  </defs>
+
+  <rect width="880" height="360" fill="url(#atlasBgDark)" rx="18"/>
+
+  <!-- connectors (drawn in data-flow direction) -->
+  <path class="conn" d="M250,95 L338,95" stroke="#2dd4bf" marker-end="url(#arrowDark)"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="0.9s" repeatCount="indefinite"/></path>
+  <path class="conn" d="M540,95 L628,95" stroke="#2dd4bf" marker-end="url(#arrowDark)"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="0.9s" repeatCount="indefinite"/></path>
+  <path class="conn" d="M730,123 L730,215" stroke="#a78bfa" marker-end="url(#arrowDark)"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite"/></path>
+  <path class="conn" d="M630,245 L542,245" stroke="#a78bfa" marker-end="url(#arrowDark)"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="0.9s" repeatCount="indefinite"/></path>
+  <path class="conn" d="M340,245 L252,245" stroke="#2dd4bf" marker-end="url(#arrowDark)"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="0.9s" repeatCount="indefinite"/></path>
+
+  <!-- packet dots travelling along each connector -->
+  <circle r="4" fill="#7c3aed"><animateMotion dur="1.8s" repeatCount="indefinite" path="M250,95 L338,95"/></circle>
+  <circle r="4" fill="#2dd4bf"><animateMotion dur="1.8s" begin="0.6s" repeatCount="indefinite" path="M540,95 L628,95"/></circle>
+  <circle r="4" fill="#7c3aed"><animateMotion dur="1.8s" begin="1.2s" repeatCount="indefinite" path="M730,123 L730,215"/></circle>
+  <circle r="4" fill="#2dd4bf"><animateMotion dur="1.8s" begin="0.3s" repeatCount="indefinite" path="M630,245 L542,245"/></circle>
+  <circle r="4" fill="#7c3aed"><animateMotion dur="1.8s" begin="0.9s" repeatCount="indefinite" path="M340,245 L252,245"/></circle>
+
+  <!-- nodes (breathing, staggered) -->
+  <g><animate attributeName="opacity" values="0.82;1;0.82" dur="3s" begin="0s" repeatCount="indefinite"/>
+    <rect class="node" x="50" y="67" width="200" height="56" rx="12" stroke="#2dd4bf"/>
+    <text class="lab" x="150" y="92">中文 prompt</text><text class="sub" x="150" y="110">coding-agent 输入</text>
+  </g>
+  <g><animate attributeName="opacity" values="0.82;1;0.82" dur="3s" begin="-0.5s" repeatCount="indefinite"/>
+    <rect class="node" x="340" y="67" width="200" height="56" rx="12" stroke="#a78bfa"/>
+    <text class="lab" x="440" y="92">Profiler</text><text class="sub" x="440" y="110">transformers · DeepSeek/Qwen/GLM</text>
+  </g>
+  <g><animate attributeName="opacity" values="0.82;1;0.82" dur="3s" begin="-1s" repeatCount="indefinite"/>
+    <rect class="node" x="630" y="67" width="200" height="56" rx="12" stroke="#2dd4bf"/>
+    <text class="lab" x="730" y="92">Strategy suite</text><text class="sub" x="730" y="110">助词 · 文言 · 成语</text>
+  </g>
+  <g><animate attributeName="opacity" values="0.82;1;0.82" dur="3s" begin="-1.5s" repeatCount="indefinite"/>
+    <rect class="node" x="630" y="217" width="200" height="56" rx="12" stroke="#a78bfa"/>
+    <text class="lab" x="730" y="242">Picker</text><text class="sub" x="730" y="260">min(net_tokens) per model</text>
+  </g>
+  <g><animate attributeName="opacity" values="0.82;1;0.82" dur="3s" begin="-2s" repeatCount="indefinite"/>
+    <rect class="node" x="340" y="217" width="200" height="56" rx="12" stroke="#7c3aed" stroke-width="2.4"/>
+    <text class="lab" x="440" y="242">Claude Code Skill</text><text class="sub" x="440" y="260">applies measured winner</text>
+  </g>
+  <g><animate attributeName="opacity" values="0.82;1;0.82" dur="3s" begin="-2.5s" repeatCount="indefinite"/>
+    <rect class="node" x="50" y="217" width="200" height="56" rx="12" stroke="#2dd4bf"/>
+    <text class="lab" x="150" y="242">Regression harness</text><text class="sub" x="150" y="260">net savings · task-success</text>
+  </g>
+
+  <text x="440" y="335" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" fill="#475569">single Python process · real transformers tokenizers · one markdown Skill</text>
+</svg>

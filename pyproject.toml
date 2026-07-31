@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wenyan"
+version = "0.1.0"
+description = "Per-tokenizer 中文 prompt-compression Skill for DeepSeek/Qwen/GLM coding agents"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "SuperMarioYL" }]
+keywords = ["chinese", "tokenizer", "prompt-compression", "deepseek", "qwen", "glm", "coding-agent", "skill"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Text Processing :: Linguistic",
+]
+dependencies = [
+    "transformers>=4.44",
+    "click>=8.1",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.urls]
+Homepage = "https://github.com/SuperMarioYL/wenyan"
+Repository = "https://github.com/SuperMarioYL/wenyan"
+Issues = "https://github.com/SuperMarioYL/wenyan/issues"
+
+[project.scripts]
+wenyan = "wenyan.cli:main"
+
+[tool.setuptools]
+packages = ["wenyan"]
+
+[tool.setuptools.package-data]
+wenyan = ["models.toml", "skill/**/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

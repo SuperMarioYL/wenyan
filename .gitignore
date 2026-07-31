@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+*.whl
+*.tar.gz
+
+# Virtual environments
+.venv/
+venv/
+env/
+.python-version
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# HuggingFace tokenizer cache (real tokenizers are fetched on demand)
+.cache/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Build scratch
+PUBLISH_BLOCKED.md
+BUILD_SETUP_NEXT_STEPS.md
+DRIFT_REPORT.md
+GIT_AUTHOR_DRIFT.md
+_build_ctx.json
+.builder_*
+.build_metadata*
+.spawn.*
+.stage_*
+
+# Agent local config
+.claude/
+CLAUDE.md
