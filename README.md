@@ -87,11 +87,14 @@ wenyan compress -p prompt.txt
 # 净 token 回归（baseline − compressed − retry cost），m1 默认 retry cost=0
 wenyan regress --suite --retry-cost 0
 
+# m4：离线重跑 §8 net-savings 伪证（committed 真实分词器计数 fixture，无需联网）
+wenyan harness
+
 # 装进 Claude Code Skill，让编码 Agent 套用测得的赢家策略
 cp wenyan/skill/SKILL.md ~/.claude/skills/wenyan/SKILL.md
 ```
 
-编程式调用见 [`examples/profile.py`](examples/profile.py)；策略实现见 [`wenyan/strategies.py`](wenyan/strategies.py)。
+编程式调用见 [`examples/profile.py`](examples/profile.py)；策略实现见 [`wenyan/strategies.py`](wenyan/strategies.py)；net-token 回归 harness 的可复现重跑与 fixture 重录见 [`docs/regress.md`](docs/regress.md)。
 
 ## <img src="https://api.iconify.design/tabler/photo.svg?color=%237c3aed&width=24" alt="" /> Demo
 
@@ -128,6 +131,7 @@ caveman 在英文压缩上明显更强（✓ vs wenyan 的 ✗）；wenyan 只�
 - [x] 双语 README（zh 主 + `README.en.md`，顶部交叉链接）
 - [ ] **m2 strategy picker**：完整 文言文 densify / 成语 sub 策略套件 + 读画像输出的 per-model 选择器 + SKILL.md per-strategy fragments
 - [ ] **m3 regression + ship**：完整净 token 回归（task-success + retry tokens + net savings）+ PyPI / Gitee 发布
+- [x] **m4 harness CI**：净 token 回归 harness 提交为可复现 artifact（committed 真实分词器计数 `RECORDED_COUNTS` + `wenyan harness` 一行重跑 + CI 门禁，见 [docs/regress.md](docs/regress.md)）
 
 ## <img src="https://api.iconify.design/tabler/scale.svg?color=%237c3aed&width=24" alt="" /> License
 

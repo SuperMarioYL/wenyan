@@ -5,6 +5,11 @@ m1 surface (implemented):
   * ``wenyan compress``  — apply 助词_strip to a prompt, show before/after tokens.
   * ``wenyan regress``   — net-token gate (baseline − compressed − retry cost) per model.
 
+m4 surface (v0.2.0 — committed reproducible net-token regression harness):
+  * ``wenyan harness``          — offline replay of the §8 net-savings falsifier against
+                                  the committed RECORDED_COUNTS fixture (deterministic, no network).
+  * ``wenyan harness --verify`` — re-run live tokenizers and check the committed fixture still matches.
+
 m2/m3 surface (stubbed with ``# TODO(m2)`` / ``# TODO(m3)``):
   * ``wenyan picker``    — per-model strategy picker reading profiler output.
   * ``wenyan suite``     — full 20-prompt regression suite + task-success run.
@@ -32,6 +37,14 @@ from .profiler import (
     profile as run_profile,
 )
 from .regress import regress as compute_regress
+from .regress import (
+    REGRESS_PROMPT_SUITE,
+    RECORD_META,
+    RECORDED_COUNTS,
+    record_live_counts,
+    run_harness,
+    verdict as harness_verdict,
+)
 from .strategies import ALL_STRATEGIES, IMPLEMENTED_STRATEGIES, apply, describe, particle_strip
 
 console = Console()
@@ -196,6 +209,81 @@ def regress(prompt_path: str | None, suite: bool, retry_cost: int) -> None:
                       Text(f"+{res.net_saved_tokens}" if res.net_positive else str(res.net_saved_tokens),
                            style="green" if res.net_positive else "red"))
     console.print(table)
+
+
+@cli.command()
+@click.option("--verify", is_flag=True,
+              help="Re-run live tokenizers and check the committed RECORDED_COUNTS still match "
+                   "(network; the default offline replay needs no network).")
+@click.option("--retry-cost", type=int, default=0, show_default=True,
+              help="Override the per-prompt retry-cost assumption (tokens/prompt) to stress the falsifier.")
+def harness(verify: bool, retry_cost: int) -> None:
+    """m4: replay the §8 net-savings falsifier against the committed counts fixture.
+
+    Default (offline, deterministic): replays the committed RECORDED_COUNTS — the
+    §8 post-ship kill-gate's net-savings falsifier, mechanically re-evaluable with
+    one command, no network. Exits 0 if every model nets positive, 1 if the
+    falsifier trips. ``--verify`` re-runs the live tokenizers and fails on drift.
+    """
+    if verify:
+        console.print("[bold]verifying[/bold] committed RECORDED_COUNTS against live tokenizers …")
+        try:
+            live = record_live_counts(REGRESS_PROMPT_SUITE)
+        except Exception as exc:
+            console.print(f"[red]could not load live tokenizers:[/red] {type(exc).__name__}: {exc}")
+            raise SystemExit(2)
+        drift = []
+        for model, entry in RECORDED_COUNTS.items():
+            for key in ("baseline", "compressed"):
+                if live[model][key] != entry[key]:
+                    drift.append(
+                        f"{model}.{key}: recorded={entry[key][:8]}… live={live[model][key][:8]}…"
+                    )
+        if drift:
+            console.print("[red]FAIL:[/red] RECORDED_COUNTS drifted from live tokenizers — "
+                          "re-record the fixture (see docs/regress.md):")
+            for d in drift:
+                console.print(f"  - {d}")
+            raise SystemExit(1)
+        console.print("[green]PASS:[/green] RECORDED_COUNTS matches live tokenizers — "
+                      "fixture is current.")
+        # fall through to the offline replay on the (now-verified) fixture
+
+    report = run_harness(retry_cost_tokens=retry_cost)
+    table = Table(title="wenyan · m4 net-token regression harness (committed fixture)", show_lines=True)
+    table.add_column("Model", style="bold")
+    table.add_column("Baseline", justify="right")
+    table.add_column("Compressed", justify="right")
+    table.add_column("Retry cost", justify="right")
+    table.add_column("Net saved", justify="right")
+    table.add_column("Break-even retry budget", justify="right")
+    table.add_column("Task success", justify="right")
+    for r in report.results:
+        if not r.available:
+            table.add_row(r.model, "-", "-", "-", "-", "-", f"unavailable: {r.error}")
+            continue
+        net_str = f"+{r.net_saved_tokens}" if r.net_positive else str(r.net_saved_tokens)
+        table.add_row(
+            r.model,
+            str(r.baseline_tokens),
+            str(r.compressed_tokens),
+            str(r.retry_cost_tokens),
+            Text(net_str, style="green" if r.net_positive else "red"),
+            str(r.break_even_retry_budget),
+            f"{r.task_success_rate * 100:.0f}%",
+        )
+    console.print(table)
+    console.print(Panel.fit(
+        harness_verdict(report),
+        title="§8 post-ship kill-gate · net-savings falsifier",
+        border_style="green" if report.falsifier_survives else "red",
+    ))
+    console.print(f"[dim]recorded_with={RECORD_META.get('recorded_with')}  "
+                  f"recorded_at={RECORD_META.get('recorded_at')}  "
+                  f"suite={report.suite_size} prompts  "
+                  f"(wenyan/models.toml)[/dim]")
+    if not report.falsifier_survives:
+        raise SystemExit(1)
 
 
 @cli.command()

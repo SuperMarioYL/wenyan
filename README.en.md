@@ -87,11 +87,14 @@ wenyan compress -p prompt.txt
 # net-token regression (baseline − compressed − retry cost); m1 default retry cost=0
 wenyan regress --suite --retry-cost 0
 
+# m4: replay the §8 net-savings falsifier offline (committed real-tokenizer counts fixture, no network)
+wenyan harness
+
 # drop the Skill into Claude Code so your coding Agent applies the measured winner
 cp wenyan/skill/SKILL.md ~/.claude/skills/wenyan/SKILL.md
 ```
 
-Programmatic use: [`examples/profile.py`](examples/profile.py); strategy code: [`wenyan/strategies.py`](wenyan/strategies.py).
+Programmatic use: [`examples/profile.py`](examples/profile.py); strategy code: [`wenyan/strategies.py`](wenyan/strategies.py); reproducible re-run + fixture re-record for the net-token regression harness: [`docs/regress.md`](docs/regress.md).
 
 ## <img src="https://api.iconify.design/tabler/photo.svg?color=%237c3aed&width=24" alt="" /> Demo
 
@@ -128,6 +131,7 @@ The model registry [`wenyan/models.toml`](wenyan/models.toml) binds each domesti
 - [x] bilingual READMEs (zh primary + `README.en.md`, cross-linked at top)
 - [ ] **m2 strategy picker**: full 文言文 densify / 成语 sub suite + per-model picker reading profiler output + SKILL.md per-strategy fragments
 - [ ] **m3 regression + ship**: full net-token regression harness (task-success + retry tokens + net savings) + PyPI / Gitee release
+- [x] **m4 harness CI**: net-token regression harness committed as a reproducible artifact (committed real-tokenizer counts `RECORDED_COUNTS` + one-command `wenyan harness` replay + CI gate; see [docs/regress.md](docs/regress.md))
 
 ## <img src="https://api.iconify.design/tabler/scale.svg?color=%237c3aed&width=24" alt="" /> License
 

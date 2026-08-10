@@ -11,7 +11,16 @@ from __future__ import annotations
 import pytest
 
 from wenyan.profiler import DEFAULT_PROMPT_SUITE, count_tokens, load_model_specs, load_tokenizer
-from wenyan.regress import NetTokenResult, net_tokens, regress
+from wenyan.regress import (
+    NetTokenResult,
+    RECORD_META,
+    RECORDED_COUNTS,
+    REGRESS_PROMPT_SUITE,
+    net_tokens,
+    record_live_counts,
+    regress,
+    run_harness,
+)
 from wenyan.strategies import (
     ALL_STRATEGIES,
     IMPLEMENTED_STRATEGIES,
@@ -118,3 +127,153 @@ def test_zhuci_never_inflates_token_count():
             before = count_tokens(tok, p)
             after = count_tokens(tok, particle_strip(p))
             assert after <= before, f"{spec.name}: stripping inflated tokens ({before}→{after})"
+
+
+# =========================================================================== #
+# m4_harness_ci — net-token regression harness as a reproducible artifact      #
+# (mvp_plan §5 m3/m4, §8 post-ship kill-gate net-savings falsifier)            #
+#                                                                             #
+# Two layers, both committed:                                                 #
+#   * OFFLINE deterministic — replays the committed RECORDED_COUNTS fixture   #
+#     (real-tokenizer counts recorded once, cached for replay, NOT a heuristic)#
+#     so `wenyan harness` / `run_harness` is one-command, no network.          #
+#   * NETWORK-gated — re-runs live tokenizers and asserts the committed       #
+#     fixture still matches (catches drift; skipped offline, never flakes CI). #
+# =========================================================================== #
+
+
+def test_regress_suite_has_20_chinese_prompts():
+    assert len(REGRESS_PROMPT_SUITE) == 20
+    for p in REGRESS_PROMPT_SUITE:
+        assert len(p) > 10
+        assert any("\u4e00" <= ch <= "\u9fff" for ch in p)
+    # first 10 are the m1 kill-gate corpus (a strict superset keeps the gate comparable)
+    from wenyan.profiler import DEFAULT_PROMPT_SUITE
+
+    assert REGRESS_PROMPT_SUITE[:10] == DEFAULT_PROMPT_SUITE
+
+
+def test_recorded_counts_fixture_shape():
+    """Committed fixture covers all three pinned models × 20 prompts × {base, compressed}."""
+    assert set(RECORDED_COUNTS) == {"deepseek", "qwen", "glm"}
+    for model, entry in RECORDED_COUNTS.items():
+        assert entry["repo"].startswith(("deepseek-ai/", "Qwen/", "zai-org/"))
+        assert len(entry["baseline"]) == 20
+        assert len(entry["compressed"]) == 20
+        # compressed never exceeds baseline (助词 strip only removes chars)
+        for b, c in zip(entry["baseline"], entry["compressed"]):
+            assert c <= b, f"{model}: compressed {c} > baseline {b}"
+
+
+def test_recorded_counts_meta_is_set():
+    assert RECORD_META["recorded_with"].startswith("transformers==")
+    assert RECORD_META["recorded_at"]
+    assert RECORD_META["suite_size"] == "20"
+
+
+def test_harness_offline_falsifier_survives():
+    """§8 net-savings falsifier survives against the committed fixture (no network).
+
+    This is the reproducible-artifact assertion: every pinned model nets positive
+    under the m1 助词 comprehension-safe retry=0 assumption, mechanically
+    re-evaluable offline with `wenyan harness`.
+    """
+    report = run_harness()
+    assert report.suite_size == 20
+    assert len(report.results) == 3
+    assert report.falsifier_survives
+    for r in report.results:
+        assert r.available
+        assert r.net_positive, f"{r.model} net-saved {r.net_saved_tokens} — falsifier trips"
+        assert r.task_success_rate == 1.0  # m1 comprehension-safe assumption
+        # break-even retry budget = gross saved = the deterministic falsification threshold
+        assert r.break_even_retry_budget == r.baseline_tokens - r.compressed_tokens
+        assert r.break_even_retry_budget > 0
+
+
+def test_harness_break_even_budget_is_gross_saved():
+    r = run_harness().results[0]
+    # budget == baseline - compressed (retry not yet counted) == gross saved
+    assert r.break_even_retry_budget == r.baseline_tokens - r.compressed_tokens
+    # and equals net when retry=0
+    assert r.break_even_retry_budget == r.net_saved_tokens
+
+
+def test_harness_trips_when_retry_exceeds_budget():
+    """The falsifier is genuine: if retries cost more than saved, it trips."""
+    report = run_harness(retry_cost_tokens=25)  # 25 tokens/prompt × 20 = 500 per model
+    assert report.falsifier_survives is False
+    for r in report.results:
+        assert not r.net_positive, f"{r.model} unexpectedly net-positive under retry=25/prompt"
+
+
+def test_harness_trips_at_exact_break_even():
+    """At retry == break-even budget, net == 0 (not strictly positive) → falsifier trips."""
+    report = run_harness(retry_cost_tokens=1)  # 20 retry/model; deepseek gross=20 → net 0
+    deepseek = [r for r in report.results if r.model == "deepseek"][0]
+    assert deepseek.break_even_retry_budget == 20
+    assert deepseek.net_saved_tokens == 0  # exactly break-even
+    assert deepseek.net_positive is False    # net_positive requires > 0
+    assert report.falsifier_survives is False
+
+
+def test_harness_per_prompt_retry_list_shape():
+    """m3-style per-prompt retry lists are accepted and aggregated correctly."""
+    report = run_harness(retry_cost_tokens=[1] * 20, task_success=[True] * 20)
+    assert len(report.results) == 3
+    for r in report.results:
+        assert r.retry_cost_tokens == 20  # 1 × 20 prompts
+        assert r.net_saved_tokens == r.break_even_retry_budget - 20
+
+
+def test_harness_partial_task_success_lowers_rate():
+    report = run_harness(task_success=[True] * 10 + [False] * 10)
+    for r in report.results:
+        assert r.task_success_rate == 0.5
+
+
+def test_harness_rejects_mismatched_fixture_suite():
+    with pytest.raises(ValueError):
+        run_harness(
+            recorded_counts={"qwen": {"baseline": [1, 2], "compressed": [1, 2], "repo": "x"}},
+            suite=["a", "b", "c"],
+        )
+
+
+def test_harness_rejects_mismatched_retry_length():
+    with pytest.raises(ValueError):
+        run_harness(retry_cost_tokens=[1, 2, 3])  # 3 != 20-prompt suite
+
+
+def test_harness_custom_fixture_falsifies_independently():
+    """A hand-rolled fixture demonstrates the harness is a real falsifier, not a constant."""
+    fixture = {
+        "x": {"repo": "x/x", "baseline": [10, 10], "compressed": [9, 9]},
+    }
+    report = run_harness(recorded_counts=fixture, suite=["a", "b"], retry_cost_tokens=0)
+    assert report.falsifier_survives  # net = 2 > 0
+    # retry of 2/prompt → net 0 → trips
+    report2 = run_harness(recorded_counts=fixture, suite=["a", "b"], retry_cost_tokens=2)
+    assert report2.falsifier_survives is False
+
+
+# --- network-gated: re-verify the committed fixture against live tokenizers ---
+
+
+def test_live_counts_match_recorded_fixture():
+    """The committed RECORDED_COUNTS must still match live tokenizers.
+
+    Catches fixture drift (a pinned tokenizer repo updates its vocab). Skipped
+    offline — this is the live re-verification; the offline replay above is the
+    deterministic CI gate.
+    """
+    specs, _toks = _tokenizers_or_skip()
+    live = record_live_counts(REGRESS_PROMPT_SUITE, specs)
+    for model, entry in RECORDED_COUNTS.items():
+        assert model in live, f"{model} missing from live record_live_counts output"
+        assert live[model]["baseline"] == entry["baseline"], (
+            f"{model}.baseline drifted — re-record the fixture (see docs/regress.md)"
+        )
+        assert live[model]["compressed"] == entry["compressed"], (
+            f"{model}.compressed drifted — re-record the fixture (see docs/regress.md)"
+        )

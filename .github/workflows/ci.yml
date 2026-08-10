@@ -4,14 +4,24 @@ on:
     branches: [main, master]
   pull_request:
 
+# m4_harness_ci (v0.2.0): pin the net-token regression harness under CI as a
+# reproducible artifact. The `test` job runs the full pytest suite (incl. the
+# offline replay of the §8 net-savings falsifier against RECORDED_COUNTS, and
+# the network-gated live-drift re-verify); the explicit `wenyan harness` step is
+# the documented one-command re-run, pinned and deterministic (no network). The
+# `build` job smoke-builds the wheel+sdist the release workflow ships.
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip                      # cache pip downloads (deps pinned in pyproject)
+          cache-dependency-path: pyproject.toml
       - name: Cache HuggingFace tokenizers
         uses: actions/cache@v4
         with:
@@ -21,4 +31,30 @@ jobs:
             hf-tok-${{ runner.os }}-py3.12-
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[dev]"
-      - run: pytest -v
+      - name: pytest (full suite — offline replay + network-gated live-drift re-verify)
+        run: pytest -v
+        env:
+          TRANSFORMERS_VERBOSITY: error
+      - name: wenyan harness (m4 — committed §8 net-savings falsifier, offline & deterministic)
+        run: |
+          wenyan harness
+        env:
+          TRANSFORMERS_VERBOSITY: error
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install --upgrade pip build
+      - name: Build wheel + sdist (smoke — release.yml ships this artifact)
+        run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
