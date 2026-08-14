@@ -100,7 +100,7 @@ Programmatic use: [`examples/profile.py`](examples/profile.py); strategy code: [
 
 ![demo](assets/demo.gif)
 
-Recording tape [`docs/demo.tape`](docs/demo.tape) (vhs renders `assets/demo.gif`); asciinema source [`demo/wenyan-demo.cast`](demo/wenyan-demo.cast). `wenyan profile` prints per-model token counts, the variance %, and the measured winning strategy.
+Recording tape [`docs/demo.tape`](docs/demo.tape) (vhs renders `assets/demo.gif`); asciinema source [`demo/wenyan-demo.cast`](demo/wenyan-demo.cast). `wenyan profile` prints per-model token counts, the variance %, and the measured winning strategy. The v0.3.0 cast shows `wenyan regress` degrading gracefully to an `unavailable` row (exit 0, no traceback) when a pinned tokenizer is unreachable (offline CI / air-gapped / HF outage) — the §8 net-savings falsifier's re-eval path no longer dies on one unavailable tokenizer.
 
 ### vs caveman
 

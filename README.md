@@ -100,7 +100,7 @@ cp wenyan/skill/SKILL.md ~/.claude/skills/wenyan/SKILL.md
 
 ![demo](assets/demo.gif)
 
-录制脚本 [`docs/demo.tape`](docs/demo.tape)（vhs 生成 `assets/demo.gif`），asciinema 源文件 [`demo/wenyan-demo.cast`](demo/wenyan-demo.cast)。`wenyan profile` 打印每模型 token 数、方差 % 与测得的压缩策略。
+录制脚本 [`docs/demo.tape`](docs/demo.tape)（vhs 生成 `assets/demo.gif`），asciinema 源文件 [`demo/wenyan-demo.cast`](demo/wenyan-demo.cast)。`wenyan profile` 打印每模型 token 数、方差 % 与测得的压缩策略；v0.3.0 的录制展示 `wenyan regress` 在某个 pinned 分词器不可用时（离线 CI / air-gapped / HF 抖动）优雅降级为 `unavailable` 行并以 0 退出，而非崩出 traceback——§8 net-savings 伪证的重评路径不再被一个不可达分词器击垮。
 
 ### vs caveman
 

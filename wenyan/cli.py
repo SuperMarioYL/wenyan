@@ -188,8 +188,12 @@ def regress(prompt_path: str | None, suite: bool, retry_cost: int) -> None:
     """Net-token gate (baseline − compressed − retry cost) per model."""
     prompts = _read_prompts(prompt_path, suite)
     specs = load_model_specs()
-    toks = {spec.name: (load_tokenizer(spec.repo) if spec.name not in (None,) else None)
-            for spec in specs}
+    # v0.3.0 fix: use _load_tokenizers (per-spec try/except → None on failure) so an
+    # unavailable pinned tokenizer (offline CI / air-gapped / repo removed / HF outage)
+    # degrades to the 'unavailable' row below instead of crashing the §8 net-savings
+    # falsifier re-eval path with a traceback. `load_tokenizer` raises (never returns
+    # None) on failure, so the prior inline comprehension was unguarded.
+    toks = _load_tokenizers(specs)
     table = Table(title="wenyan · 助词 net-token regression", show_lines=True)
     table.add_column("Model")
     table.add_column("Baseline", justify="right")

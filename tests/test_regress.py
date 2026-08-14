@@ -277,3 +277,60 @@ def test_live_counts_match_recorded_fixture():
         assert live[model]["compressed"] == entry["compressed"], (
             f"{model}.compressed drifted — re-record the fixture (see docs/regress.md)"
         )
+
+
+# =========================================================================== #
+# fix-regress-crash-on-unavailable-tokenizer (v0.3.0)                          #
+#                                                                             #
+# `wenyan regress` (cli.py) must route tokenizers through `_load_tokenizers`   #
+# (per-spec try/except → None on failure) so an unavailable pinned tokenizer   #
+# (offline CI / air-gapped / repo removed / HF outage) degrades to the         #
+# 'unavailable' row instead of crashing the §8 net-savings falsifier's         #
+# re-eval path with a traceback. `load_tokenizer` RAISES on failure (never     #
+# returns None, profiler.py), so the prior unguarded inline dict comprehension #
+# propagated the exception — leaving the `if tok is None: ... unavailable`     #
+# branch dead. This test exercises the now-live graceful-degrade branch.      #
+# =========================================================================== #
+
+
+def test_regress_degrades_on_unavailable_tokenizer(monkeypatch):
+    """`wenyan regress` exits 0 with an 'unavailable' row, no traceback.
+
+    Patches ``load_tokenizer`` to raise (simulated HF outage / offline CI) and
+    asserts the command degrades gracefully rather than crashing — proving the
+    cli.py:191 fix (``_load_tokenizers`` instead of the unguarded comprehension)
+    holds. This is the offline-CI / air-gapped path that falsifier re-eval runs
+    through, so a crash here would defeat the §8 post-ship kill-gate.
+    """
+    import io
+    from unittest import mock
+
+    from click.testing import CliRunner
+    from rich.console import Console
+
+    import wenyan.cli as cli_mod
+
+    buf = io.StringIO()
+    # drive the command's rich output into a buffer we can assert on; plain text
+    # (non-tty) is fine — we only check the graceful-degrade row + no traceback.
+    monkeypatch.setattr(cli_mod, "console", Console(file=buf, width=200))
+
+    runner = CliRunner()
+    with mock.patch.object(
+        cli_mod,
+        "load_tokenizer",
+        side_effect=RuntimeError("simulated HF outage (repo unreachable / offline CI)"),
+    ):
+        result = runner.invoke(cli_mod.cli, ["regress", "--suite", "--retry-cost", "0"])
+
+    assert result.exit_code == 0, (
+        f"regress should degrade gracefully (exit 0), got exit={result.exit_code}; "
+        f"exception={result.exception!r}; output:\n{result.output}"
+    )
+    assert result.exception is None, f"regress raised: {result.exception!r}"
+    out = buf.getvalue()
+    # every pinned model hits the graceful-degrade 'unavailable' row (3 warnings +
+    # 3 table rows), proving _load_tokenizers (not the crashing comprehension) ran.
+    assert "unavailable" in out, f"expected an 'unavailable' row; got:\n{out}"
+    assert out.count("unavailable") >= 3, f"expected >=3 'unavailable' marks; got:\n{out}"
+    assert "Traceback" not in out, f"regress leaked a traceback:\n{out}"
