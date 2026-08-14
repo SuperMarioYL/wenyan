@@ -1,5 +1,6 @@
 {
   "schema": 1,
+  "content_version": "v0.3.0",
   "name": "wenyan",
   "github": "https://github.com/SuperMarioYL/wenyan",
   "host": "wenyan.lei6393.com",
@@ -12,8 +13,8 @@
       "en": "One Chinese prompt\nthe real savings, measured per model"
     },
     "sub": {
-      "zh": "中文 prompt 在不同模型上 token 数差 >5%。wenyan 用每个模型自己的计数方式量出真实开销，再量压缩后净省多少——不是估算，是实测。",
-      "en": "The same Chinese prompt costs >5% different tokens per model. wenyan counts the real cost on each model's own terms, then the net savings after a rewrite — not an estimate, a measurement."
+      "zh": "同一句中文在三个模型上 token 数差 >5%。wenyan 用每个模型自己的计数方式量出真实开销与净省——不是估算，是实测。v0.3.0 起，某个模型暂时连不上，不再整条崩掉：标一行「不可用」，把剩下的照常量完。",
+      "en": "The same Chinese prompt costs >5% different tokens per model. wenyan counts the real cost on each model's own terms, then the net savings — not an estimate, a measurement. As of v0.3.0: if one model is temporarily unreachable, the run no longer crashes — it marks one row 'unavailable' and finishes the rest."
     },
     "command": "git clone https://github.com/SuperMarioYL/wenyan && cd wenyan && uv pip install -e ."
   },
@@ -34,9 +35,9 @@
       "chips": ["› 一份 markdown", "› 装进即用", "› 不起服务"]
     },
     {
-      "title": { "zh": "用真实计数，不是估算", "en": "Real counts, not estimates" },
-      "body": { "zh": "每个模型用自己真实的计数方式量 token——不靠经验系数猜。给的是你账单上会看到的那种数。", "en": "Every model counts tokens its own real way — no heuristic fudge factor. The numbers are the kind you'll see on your bill." },
-      "chips": ["› 真实计数", "› 无估算系数", "› 账单级精度"]
+      "title": { "zh": "断网重跑，不再整条崩掉", "en": "Offline re-run, no full crash" },
+      "body": { "zh": "重跑净省校验时，某个模型暂时连不上（离线、断网、来源被挪走），不再崩出报错整条挂掉——标一行「不可用」，把剩下能连的模型照常量完，干净退出。", "en": "When you re-run the net-savings check and one model is temporarily unreachable (offline, no network, source moved), it no longer crashes the whole run with a traceback — it marks one row 'unavailable', finishes measuring the models it can still reach, and exits clean." },
+      "chips": ["› 不可用不阻塞", "› 其余照常量", "› 退出码 0"]
     }
   ],
   "scene": { "kind": "hub-nodes", "nodes": ["DeepSeek", "Qwen", "GLM"] },
@@ -45,5 +46,5 @@
     "sub": { "zh": "一条命令，三个模型的 token 实测 + 净省。", "en": "One command, three models' real tokens + net savings." },
     "button": { "zh": "看 GitHub", "en": "View on GitHub" }
   },
-  "footer": { "tag": { "zh": "MIT · 开源 · 本地运行", "en": "MIT · open source · runs locally" } }
+  "footer": { "tag": { "zh": "MIT · 开源 · 本地运行 · v0.3.0", "en": "MIT · open source · runs locally · v0.3.0" } }
 }
