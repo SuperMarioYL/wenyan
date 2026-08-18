@@ -63,7 +63,7 @@ assert len(REGRESS_PROMPT_SUITE) == 20, "m3 regression suite must be 20 prompts"
 
 
 # Recorded real-tokenizer counts for the 20-prompt suite across the three pinned
-# 国产模型 tokenizers (wenyan/models.toml). Recorded once via `record_live_counts`
+# 国产模型 tokenizers (wenyan/models.toml). Recorded via `record_live_counts`
 # against live `transformers` tokenizers and committed here so the §8 net-savings
 # falsifier is re-evaluable offline (no network, no flaky live API) with
 # `wenyan harness` / `run_harness`. This is a CACHED REAL MEASUREMENT — every
@@ -72,10 +72,16 @@ assert len(REGRESS_PROMPT_SUITE) == 20, "m3 regression suite must be 20 prompts"
 # tokenizer). Re-verify against live tokenizers with `wenyan harness --verify` or
 # the network-gated `test_live_counts_match_recorded_fixture` test; if a pinned
 # tokenizer repo drifts, that test fails and the fixture must be re-recorded.
+#
+# v0.4.0 re-record: the compressed column was re-recorded after pruning the
+# 地/过/哈 homographs from PARTICLES (wenyan/strategies.py) so the fixture
+# reflects the comprehension-safe strip, not the content-mangling one. Baselines
+# are unchanged (particle_strip never touches the original prompt); only the
+# compressed counts for the three prompts containing 过 (indices 3/10/18) moved.
 RECORD_META: dict[str, str] = {
     "suite_size": "20",
     "recorded_with": "transformers==5.14.1",
-    "recorded_at": "2026-08-10",
+    "recorded_at": "2026-08-18",  # v0.4.0: re-recorded after pruning 地/过/哈 from PARTICLES
     "models_toml": "wenyan/models.toml",
     "strategy": "助词_strip (m1 prototype; retry_cost=0 — comprehension-safe assumption)",
 }
@@ -88,8 +94,8 @@ RECORDED_COUNTS: dict[str, dict[str, list[int]]] = {
             37, 35, 30, 40, 29, 39, 36, 38, 36, 29,
         ],
         "compressed": [
-            33, 25, 27, 29, 22, 27, 32, 36, 30, 32,
-            35, 34, 29, 40, 28, 38, 35, 37, 34, 29,
+            33, 25, 27, 30, 22, 27, 32, 36, 30, 32,
+            36, 34, 29, 40, 28, 38, 35, 37, 35, 29,
         ],
     },
     "qwen": {
@@ -99,8 +105,8 @@ RECORDED_COUNTS: dict[str, dict[str, list[int]]] = {
             27, 29, 27, 35, 23, 33, 31, 32, 30, 22,
         ],
         "compressed": [
-            26, 21, 25, 24, 18, 22, 27, 29, 25, 24,
-            25, 28, 26, 35, 22, 32, 30, 31, 29, 22,
+            26, 21, 25, 25, 18, 22, 27, 29, 25, 24,
+            26, 28, 26, 35, 22, 32, 30, 31, 29, 22,
         ],
     },
     "glm": {
@@ -110,8 +116,8 @@ RECORDED_COUNTS: dict[str, dict[str, list[int]]] = {
             27, 28, 25, 35, 22, 30, 30, 30, 29, 22,
         ],
         "compressed": [
-            26, 21, 24, 25, 18, 23, 26, 28, 25, 22,
-            27, 27, 24, 35, 21, 29, 30, 29, 29, 22,
+            26, 21, 24, 26, 18, 23, 26, 28, 25, 22,
+            27, 27, 24, 35, 21, 29, 30, 29, 28, 22,
         ],
     },
 }

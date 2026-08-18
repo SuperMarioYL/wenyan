@@ -98,6 +98,22 @@ def profile(prompt_path: str | None, suite: bool) -> None:
                       "(network/HF unreachable). wenyan needs real tokenizers.")
         raise SystemExit(2)
 
+    if len(available) < 2:
+        # v0.4.0 fix: variance_pct returns 0.0 with <2 counts (profiler), so a
+        # single available tokenizer makes every per-prompt spread 0.0 and would
+        # print a false "FAIL ❌ variance <5%" §8 KILL. The thesis is not
+        # falsified — there is just insufficient data to measure a cross-model
+        # spread. Mark the gate INDETERMINATE and exit instead of running the
+        # 0%-variance FAIL path. (The 0-available case is handled above.)
+        console.print(Panel.fit(
+            f"need ≥2 tokenizers to measure variance; only {len(available)} "
+            f"available ({available[0].model}). variance gate: INDETERMINATE — "
+            "§8 thesis not falsified, just unmeasurable (no cross-model spread).",
+            title="m1 kill-gate · variance",
+            border_style="yellow",
+        ))
+        raise SystemExit(2)
+
     table = Table(title="wenyan · per-tokenizer 中文 profile", show_lines=True)
     table.add_column("Model", style="bold")
     table.add_column("Family", style="dim")

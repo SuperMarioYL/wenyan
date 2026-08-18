@@ -65,6 +65,28 @@ def test_particle_strip_is_a_subset_of_chars():
     assert set(out) <= set(text)
 
 
+def test_particle_strip_does_not_destroy_content_words():
+    """v0.4.0 fix (fix-particle-strip-destroys-content-words): 地/过/哈 are
+    homographs — particles in some positions but content morphemes in common
+    coding terms (地址/过滤/哈希). The char-filter has no word-boundary awareness,
+    so before the prune it stripped every occurrence and destroyed those content
+    words (布隆过滤器→布隆滤器), falsifying the m1 "comprehension-safe" premise
+    (retry_cost=0) the §8 net-savings falsifier rests on. This test fails without
+    the prune (过/哈/地 were in PARTICLES) and passes with it.
+    """
+    # 过 — content morpheme in 过滤 (filter), not the perfective aspect particle
+    assert particle_strip("布隆过滤器") == "布隆过滤器"
+    # 哈 — content morpheme in 哈希 (hash), not the sentence-final mood particle
+    assert particle_strip("哈希算法") == "哈希算法"
+    # 地 — content morpheme in 地址 (address), not the structural particle
+    assert particle_strip("内存地址") == "内存地址"
+    # sanity: genuine particles are still stripped — 的 (no content-word homograph)
+    # and 了/得 (occur only as particles in-suite, so kept in the pruned set)
+    assert "的" not in particle_strip("一个详细的函数")
+    assert "了" not in particle_strip("遇到了错误")
+    assert "得" not in particle_strip("跑得很慢")
+
+
 def test_only_zhuci_strip_is_implemented_in_m1():
     assert IMPLEMENTED_STRATEGIES == ("助词_strip",)
     assert set(ALL_STRATEGIES) == {"文言文", "助词_strip", "成语_sub"}
@@ -208,10 +230,15 @@ def test_harness_trips_when_retry_exceeds_budget():
 
 
 def test_harness_trips_at_exact_break_even():
-    """At retry == break-even budget, net == 0 (not strictly positive) → falsifier trips."""
-    report = run_harness(retry_cost_tokens=1)  # 20 retry/model; deepseek gross=20 → net 0
+    """At retry == break-even budget, net == 0 (not strictly positive) → falsifier trips.
+
+    v0.4.0: deepseek's break-even budget dropped 20→17 after the PARTICLES prune
+    (过 now survives in 3 prompts → 3 fewer gross-saved tokens); a per-prompt
+    retry list summing to 17 hits exact break-even where retry == budget → net 0.
+    """
+    report = run_harness(retry_cost_tokens=[1] * 17 + [0] * 3)  # 17 retry = deepseek break-even
     deepseek = [r for r in report.results if r.model == "deepseek"][0]
-    assert deepseek.break_even_retry_budget == 20
+    assert deepseek.break_even_retry_budget == 17
     assert deepseek.net_saved_tokens == 0  # exactly break-even
     assert deepseek.net_positive is False    # net_positive requires > 0
     assert report.falsifier_survives is False

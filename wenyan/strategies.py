@@ -16,10 +16,18 @@ from typing import Literal
 Strategy = Literal["文言文", "助词_strip", "成语_sub"]
 
 # Chinese 助词 (particles) with low semantic load in coding prompts. Stripping
-# these is the comprehension-safe prototype: structure particles (的/地/得),
-# aspect markers (了/着/过), and sentence-final mood particles (吧/啊/呢/呀/嘛/
-# 哈/嗯/哦/呗). The 们 plural marker is also low-risk in imperative prompts.
-PARTICLES: frozenset[str] = frozenset("的了着过吧啊呢呀嘛哈嗯哦呗嗏的地得们")
+# these is the comprehension-safe prototype: structure particles (的/得),
+# aspect markers (了/着), and sentence-final mood particles (吧/啊/呢/呀/嘛/
+# 嗯/哦/呗). The 们 plural marker is also low-risk in imperative prompts.
+#
+# v0.4.0 prune: dropped the 地/过/哈 homographs — these double as content
+# morphemes in common coding terms (地址/地图, 过滤·过期·过程·通过, 哈希), and
+# the char-filter has no word-boundary awareness, so it destroyed those content
+# words (布隆过滤器→布隆滤器), falsifying the m1 comprehension-safe premise.
+# 的/了/得 stay: in the 20-prompt suite each occurs only as a genuine particle
+# (的 possessive, 遇到了/加过了 perfective, 跑得 complement); word-boundary
+# stripping (so out-of-suite 了解/得到 survive too) is m2 lookup-strategy scope.
+PARTICLES: frozenset[str] = frozenset("的了着吧啊呢呀嘛嗯哦呗嗏得们")
 
 # m1 implements only 助词_strip; m2 will add 文言文 + 成语_sub.
 IMPLEMENTED_STRATEGIES: tuple[Strategy, ...] = ("助词_strip",)
@@ -34,6 +42,11 @@ def particle_strip(text: str) -> str:
     downstream model retrying (the m3 regression concern) is minimised while
     still dropping tokens on tokenizers that split particles into their own
     subwords.
+
+    v0.4.0: PARTICLES was pruned to drop the 地/过/哈 homographs (地址/过滤/哈希)
+    so the char-filter no longer destroys those content words; the remaining
+    chars are particles in every in-suite occurrence. Full word-boundary
+    stripping (so out-of-suite 了解/得到 survive too) is m2 lookup-strategy scope.
     """
     return "".join(ch for ch in text if ch not in PARTICLES)
 
@@ -54,7 +67,7 @@ def apply(strategy: Strategy, text: str) -> str:
 def describe(strategy: Strategy) -> str:
     """One-line description of a strategy (used by the CLI + SKILL.md)."""
     if strategy == "助词_strip":
-        return "助词 stripping — drop low-load particles (的/了/着/过/吧/呢…) for a comprehension-safe token cut."
+        return "助词 stripping — drop low-load particles (的/了/着/吧/呢…) for a comprehension-safe token cut."
     if strategy == "文言文":
         return "文言 densify — rewrite verbose modern Chinese into denser Classical phrasing (m2)."
     if strategy == "成语_sub":

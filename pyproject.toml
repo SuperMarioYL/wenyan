@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wenyan"
-version = "0.3.0"
+version = "0.4.0"
 description = "Per-tokenizer 中文 prompt-compression Skill for DeepSeek/Qwen/GLM coding agents"
 readme = "README.md"
 requires-python = ">=3.12"
