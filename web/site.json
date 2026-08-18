@@ -1,13 +1,23 @@
 {
   "schema": 1,
-  "content_version": "v0.3.0",
+  "content_version": "v0.4.0",
   "name": "wenyan",
   "github": "https://github.com/SuperMarioYL/wenyan",
   "host": "wenyan.lei6393.com",
-  "lang": { "primary": "zh", "toggle": true },
-  "accent": ["#b89464", "#8c6a3e", "#5e4828"],
+  "lang": {
+    "primary": "zh",
+    "toggle": true
+  },
+  "accent": [
+    "#b89464",
+    "#8c6a3e",
+    "#5e4828"
+  ],
   "hero": {
-    "eyebrow": { "zh": "中文 · 省token · 按模型实测", "en": "Chinese · Save tokens · Measured per model" },
+    "eyebrow": {
+      "zh": "中文 · 省token · 按模型实测",
+      "en": "Chinese · Save tokens · Measured per model"
+    },
     "headline": {
       "zh": "一句中文 prompt\n按模型量出能省多少 token",
       "en": "One Chinese prompt\nthe real savings, measured per model"
@@ -20,31 +30,92 @@
   },
   "advantages": [
     {
-      "title": { "zh": "同一句中文，三个模型 token 数差 >5%", "en": "Same Chinese line, >5% token gap across three models" },
-      "body": { "zh": "中文 prompt 在不同模型上 token 数不同——有的切得碎，有的切得密。wenyan 一条命令量出来，换模型到底差多少，一眼可见。", "en": "Chinese prompts cost different tokens per model — some split finer, some denser. One command measures the gap, so switching models shows its real price at a glance." },
-      "chips": ["› 三模型 token 实测", "› >5% 方差实测", "› 一条命令出表"]
+      "title": {
+        "zh": "同一句中文，三个模型 token 数差 >5%",
+        "en": "Same Chinese line, >5% token gap across three models"
+      },
+      "body": {
+        "zh": "中文 prompt 在不同模型上 token 数不同——有的切得碎，有的切得密。wenyan 一条命令量出来，换模型到底差多少，一眼可见。",
+        "en": "Chinese prompts cost different tokens per model — some split finer, some denser. One command measures the gap, so switching models shows its real price at a glance."
+      },
+      "chips": [
+        "› 三模型 token 实测",
+        "› >5% 方差实测",
+        "› 一条命令出表"
+      ]
     },
     {
-      "title": { "zh": "压缩一句中文，每模型净省 token", "en": "Compress one Chinese line, net savings per model" },
-      "body": { "zh": "压缩后比压缩前净省多少 token，按模型量出来——每个模型都量成正向，不是压完不看账。", "en": "How many tokens the rewrite actually saves, per model — measured net-positive on every model, not compressed-and-forgotten." },
-      "chips": ["› 净 token 实测", "› 每模型都正向", "› 三模型都省"]
+      "title": {
+        "zh": "压缩一句中文，每模型净省 token — 不删字、不伤意",
+        "en": "Compress one Chinese line, net savings per model — no deleted characters, no broken meaning"
+      },
+      "body": {
+        "zh": "压缩后比压缩前净省多少 token，按模型量出来——每个模型都量成正向。v0.4.0 起，助词剥离只删真正的虚词，不再误删 过滤/哈希/地址 里的字，净省是省字不省义的实测。",
+        "en": "How many tokens the rewrite actually saves, per model — measured net-positive on every model. As of v0.4.0, particle-stripping removes only real particles, no longer deleting characters from words like 过滤/哈希/地址 — the savings are compression, not content loss."
+      },
+      "chips": [
+        "> 净 token 实测",
+        "> 每模型都正向",
+        "> 省字不省义"
+      ]
     },
     {
-      "title": { "zh": "装进 Skill，Agent 直接套用", "en": "Drop in the Skill, your agent applies it" },
-      "body": { "zh": "一份 markdown Skill 放进你的编码 Agent，它就按实测套用中文压缩。不用改工作流，不用起服务。", "en": "One markdown Skill into your coding agent and it applies the measured Chinese compression. No workflow change, no server to run." },
-      "chips": ["› 一份 markdown", "› 装进即用", "› 不起服务"]
+      "title": {
+        "zh": "装进 Skill，Agent 直接套用",
+        "en": "Drop in the Skill, your agent applies it"
+      },
+      "body": {
+        "zh": "一份 markdown Skill 放进你的编码 Agent，它就按实测套用中文压缩。不用改工作流，不用起服务。",
+        "en": "One markdown Skill into your coding agent and it applies the measured Chinese compression. No workflow change, no server to run."
+      },
+      "chips": [
+        "› 一份 markdown",
+        "› 装进即用",
+        "› 不起服务"
+      ]
     },
     {
-      "title": { "zh": "断网重跑，不再整条崩掉", "en": "Offline re-run, no full crash" },
-      "body": { "zh": "重跑净省校验时，某个模型暂时连不上（离线、断网、来源被挪走），不再崩出报错整条挂掉——标一行「不可用」，把剩下能连的模型照常量完，干净退出。", "en": "When you re-run the net-savings check and one model is temporarily unreachable (offline, no network, source moved), it no longer crashes the whole run with a traceback — it marks one row 'unavailable', finishes measuring the models it can still reach, and exits clean." },
-      "chips": ["› 不可用不阻塞", "› 其余照常量", "› 退出码 0"]
+      "title": {
+        "zh": "断网重跑，不再整条崩掉",
+        "en": "Offline re-run, no full crash"
+      },
+      "body": {
+        "zh": "重跑净省校验时，某个模型暂时连不上（离线、断网、来源被挪走），不再崩出报错整条挂掉——标一行「不可用」，把剩下能连的模型照常量完，干净退出。",
+        "en": "When you re-run the net-savings check and one model is temporarily unreachable (offline, no network, source moved), it no longer crashes the whole run with a traceback — it marks one row 'unavailable', finishes measuring the models it can still reach, and exits clean."
+      },
+      "chips": [
+        "› 不可用不阻塞",
+        "› 其余照常量",
+        "› 退出码 0"
+      ]
     }
   ],
-  "scene": { "kind": "hub-nodes", "nodes": ["DeepSeek", "Qwen", "GLM"] },
-  "cta": {
-    "headline": { "zh": "一句中文，量出能省多少", "en": "One Chinese line, measured savings" },
-    "sub": { "zh": "一条命令，三个模型的 token 实测 + 净省。", "en": "One command, three models' real tokens + net savings." },
-    "button": { "zh": "看 GitHub", "en": "View on GitHub" }
+  "scene": {
+    "kind": "hub-nodes",
+    "nodes": [
+      "DeepSeek",
+      "Qwen",
+      "GLM"
+    ]
   },
-  "footer": { "tag": { "zh": "MIT · 开源 · 本地运行 · v0.3.0", "en": "MIT · open source · runs locally · v0.3.0" } }
+  "cta": {
+    "headline": {
+      "zh": "一句中文，量出能省多少",
+      "en": "One Chinese line, measured savings"
+    },
+    "sub": {
+      "zh": "一条命令，三个模型的 token 实测 + 净省。",
+      "en": "One command, three models' real tokens + net savings."
+    },
+    "button": {
+      "zh": "看 GitHub",
+      "en": "View on GitHub"
+    }
+  },
+  "footer": {
+    "tag": {
+      "zh": "MIT · 开源 · 本地运行 · v0.3.0",
+      "en": "MIT · open source · runs locally · v0.3.0"
+    }
+  }
 }
