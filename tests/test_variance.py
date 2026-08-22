@@ -164,3 +164,174 @@ def test_profile_variance_indeterminate_with_one_model(monkeypatch):
     assert "only 1 available" in out, f"expected the 'only N available' message; got:\n{out}"
     # the false §8 KILL must NOT fire (0.0 variance with <2 counts is not a kill)
     assert "variance <5%" not in out, f"false FAIL path ran (the bug); got:\n{out}"
+
+
+# =========================================================================== #
+# fix-profile-variance-gate-exits-zero-on-fail (v0.5.0)                        #
+#                                                                             #
+# `wenyan profile` derives `gate_passed = min_var > 5.0` and prints the       #
+# FAIL line on failure but never raised SystemExit, so the command exited 0    #
+# whether the §8 variance kill-gate passed OR failed — a mechanical exit-code  #
+# check treated a falsified per-tokenizer thesis as PASS. The measured-and-    #
+# failed path exited 0 while the v0.4.0 cannot-measure path exited non-zero   #
+# (SystemExit(2)). The fix raises SystemExit(1) when gate_passed is False,     #
+# mirroring the indeterminate SystemExit(2) and the harness SystemExit(1).    #
+# =========================================================================== #
+
+
+def test_profile_variance_gate_exits_nonzero_on_fail(monkeypatch):
+    """`wenyan profile` with ≥2 available tokenizers whose counts collapse to
+    <5% variance exits non-zero (1), not 0 — a falsified §8 variance kill-gate
+    must kill mechanically.
+
+    Patches ``run_profile`` to return 2 available models with IDENTICAL
+    per-prompt token counts (so every per-prompt spread is 0.0% and
+    ``min_var == 0.0 < 5.0`` → ``gate_passed is False``) and asserts the
+    command exits 1 with the FAIL line and no traceback. This is
+    mutation-genuine: pre-fix the FAIL line printed but the command exited 0.
+    """
+    import io
+    from unittest import mock
+    from click.testing import CliRunner
+    from rich.console import Console
+
+    import wenyan.cli as cli_mod
+    from wenyan.profiler import ProfileResult
+
+    buf = io.StringIO()
+    monkeypatch.setattr(cli_mod, "console", Console(file=buf, width=200))
+
+    # 2 of 3 tokenizers available with IDENTICAL counts → variance_pct 0.0%.
+    def fake_profile(prompts, specs):
+        n = len(prompts)
+        return [
+            ProfileResult(
+                model="deepseek", repo="deepseek-ai/deepseek-coder-1.3b-base",
+                family="DeepSeek BBPE (32K)",
+                per_prompt_tokens=[10] * n, baseline_tokens=10 * n, available=True,
+            ),
+            ProfileResult(
+                model="qwen", repo="Qwen/Qwen2.5-0.5B", family="Qwen2 BBPE (151K)",
+                per_prompt_tokens=[10] * n, baseline_tokens=10 * n, available=True,
+            ),
+            ProfileResult(
+                model="glm", repo="zai-org/GLM-4-9B-0414", family="GLM-4 BBPE (151K)",
+                available=False, error="RuntimeError: simulated offline",
+            ),
+        ]
+
+    # Mock the table-build tokenizer reload (now guarded by the v0.5.0 fix) so
+    # the run reaches the variance gate instead of crashing on the reload.
+    class _MockTok:
+        def __call__(self, text, add_special_tokens=False):
+            return {"input_ids": [1, 2, 3]}
+
+    runner = CliRunner()
+    with mock.patch.object(cli_mod, "run_profile", side_effect=fake_profile), \
+         mock.patch.object(cli_mod, "load_tokenizer", return_value=_MockTok()):
+        result = runner.invoke(cli_mod.cli, ["profile", "--suite"])
+
+    out = buf.getvalue()
+    assert result.exit_code == 1, (
+        f"profile should exit 1 (falsified variance gate), got "
+        f"exit={result.exit_code}; exception={result.exception!r}; output:\n{out}"
+    )
+    assert "Traceback" not in out, f"profile leaked a traceback:\n{out}"
+    assert "variance <5%" in out, f"expected the FAIL line; got:\n{out}"
+    # the variance gate kills mechanically at the gate — the net-token gate
+    # panel below must NOT render on a variance FAIL.
+    assert "m1 kill-gate · net-token" not in out, (
+        f"variance FAIL should kill before the net-token gate runs; got:\n{out}"
+    )
+
+
+# =========================================================================== #
+# fix-profile-unguarded-tokenizer-reload (v0.5.0)                              #
+#                                                                             #
+# After the ≥2-availability guard passes, `profile` reloaded tokenizers via   #
+# `toks = {r.model: load_tokenizer(r.repo) for r in available}` with NO       #
+# try/except. `load_tokenizer` RAISES on failure (never returns None), so a   #
+# transient re-load failure of a repo that loaded in run_profile crashed      #
+# `profile` with an unhandled traceback right when building the table —       #
+# AFTER the graceful-degrade guard already ran. Every other load site guards   #
+# failure (`_load_tokenizers`, `profiler.profile`, `compress`). The fix       #
+# wraps the reload in the same try/except→None pattern and skips None rows in  #
+# the table + any_net loop, mirroring the `regress` command's graceful-        #
+# degrade. The shipped test file used to mock load_tokenizer on this exact     #
+# line specifically to keep the reload from crashing.                          #
+# =========================================================================== #
+
+
+def test_profile_degrades_on_reload_failure(monkeypatch):
+    """`wenyan profile` degrades to an 'unavailable' row (no traceback) when a
+    tokenizer that loaded in run_profile fails on the table-build reload.
+
+    Patches ``run_profile`` to return 3 available models with differing counts
+    (so the variance gate passes and the any_net loop also runs) and patches
+    ``load_tokenizer`` to raise on the qwen repo's reload — simulating a
+    transient HF online etag-check timeout / cache corruption between the two
+    loads. Asserts the command degrades gracefully (an 'unavailable' row +
+    warning, no traceback, exit 0) instead of crashing the table build.
+    Mutation-genuine: pre-fix the unguarded comprehension propagated the
+    reload exception; the any_net loop also crashed on `count_tokens(None, ...)`.
+    """
+    import io
+    from unittest import mock
+    from click.testing import CliRunner
+    from rich.console import Console
+
+    import wenyan.cli as cli_mod
+    from wenyan.profiler import ProfileResult
+
+    buf = io.StringIO()
+    monkeypatch.setattr(cli_mod, "console", Console(file=buf, width=200))
+
+    # 3 available models with DIFFERING counts → variance_pct > 5% (gate passes,
+    # so the any_net loop also runs and must skip the None reload).
+    def fake_profile(prompts, specs):
+        n = len(prompts)
+        return [
+            ProfileResult(
+                model="deepseek", repo="deepseek-ai/deepseek-coder-1.3b-base",
+                family="DeepSeek BBPE (32K)",
+                per_prompt_tokens=[20] * n, baseline_tokens=20 * n, available=True,
+            ),
+            ProfileResult(
+                model="qwen", repo="Qwen/Qwen2.5-0.5B", family="Qwen2 BBPE (151K)",
+                per_prompt_tokens=[15] * n, baseline_tokens=15 * n, available=True,
+            ),
+            ProfileResult(
+                model="glm", repo="zai-org/GLM-4-9B-0414", family="GLM-4 BBPE (151K)",
+                per_prompt_tokens=[10] * n, baseline_tokens=10 * n, available=True,
+            ),
+        ]
+
+    class _MockTok:
+        def __call__(self, text, add_special_tokens=False):
+            return {"input_ids": [1, 2, 3]}
+
+    # The reload (the only call site once run_profile is mocked) raises for qwen
+    # and returns a mock tok for the others — proving the reload is guarded.
+    def fake_load(repo):
+        if "Qwen" in repo:
+            raise RuntimeError("simulated transient re-load failure (HF etag timeout)")
+        return _MockTok()
+
+    runner = CliRunner()
+    with mock.patch.object(cli_mod, "run_profile", side_effect=fake_profile), \
+         mock.patch.object(cli_mod, "load_tokenizer", side_effect=fake_load):
+        result = runner.invoke(cli_mod.cli, ["profile", "--suite"])
+
+    out = buf.getvalue()
+    assert result.exit_code == 0, (
+        f"profile should degrade gracefully (exit 0) when a reload fails but "
+        f"the variance gate passes, got exit={result.exit_code}; "
+        f"exception={result.exception!r}; output:\n{out}"
+    )
+    assert result.exception is None, f"profile raised: {result.exception!r}"
+    assert "Traceback" not in out, f"profile leaked a traceback:\n{out}"
+    # the qwen reload failed → a warning + an 'unavailable' table row.
+    assert "unavailable" in out, f"expected an 'unavailable' row; got:\n{out}"
+    assert "qwen tokenizer unavailable" in out, (
+        f"expected the qwen reload-failure warning; got:\n{out}"
+    )

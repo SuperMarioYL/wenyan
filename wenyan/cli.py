@@ -121,8 +121,24 @@ def profile(prompt_path: str | None, suite: bool) -> None:
     table.add_column("助词_strip tokens", justify="right")
     table.add_column("Net saved", justify="right", style="green")
 
-    toks = {r.model: load_tokenizer(r.repo) for r in available}
+    # v0.5.0 fix: re-load tokenizers through the same per-spec try/except→None
+    # pattern `_load_tokenizers` uses, so a transient re-load failure of a repo
+    # that loaded successfully in run_profile degrades to an 'unavailable' row
+    # instead of crashing the table build with an unhandled traceback.
+    # `load_tokenizer` raises (never returns None) on failure (profiler.py), so
+    # the prior unguarded comprehension propagated the exception. None rows are
+    # skipped when building the table and the any_net loop below.
+    toks = {}
     for r in available:
+        try:
+            toks[r.model] = load_tokenizer(r.repo)
+        except Exception as exc:  # transient re-load failure — surface but keep going
+            console.print(f"[yellow]warning:[/yellow] {r.model} tokenizer unavailable: {exc}")
+            toks[r.model] = None
+    for r in available:
+        if toks[r.model] is None:
+            table.add_row(r.model, r.family, "-", "-", "unavailable")
+            continue
         comp = [count_tokens(toks[r.model], particle_strip(p)) for p in prompts]
         net = compute_regress(r.model, r.per_prompt_tokens, comp, retry_cost_tokens=0)
         net_str = f"+{net.net_saved_tokens}" if net.net_positive else str(net.net_saved_tokens)
@@ -146,11 +162,21 @@ def profile(prompt_path: str | None, suite: bool) -> None:
         border_style="magenta" if gate_passed else "red",
     ))
 
+    # v0.5.0 fix: a falsified §8 variance kill-gate must exit non-zero, not 0.
+    # Pre-fix the command printed the FAIL line but exited 0, so a mechanical
+    # exit-code check treated a falsified per-tokenizer thesis as PASS — the
+    # measured-and-failed path exited 0 while the cannot-measure path above
+    # exits non-zero. Mirrors the indeterminate SystemExit(2) above and the
+    # harness SystemExit(1) (cli.py harness). One guarded exit, no metric change.
+    if not gate_passed:
+        raise SystemExit(1)
+
     any_net = all(
         compute_regress(r.model, r.per_prompt_tokens,
                 [count_tokens(toks[r.model], particle_strip(p)) for p in prompts],
                 retry_cost_tokens=0).net_positive
         for r in available
+        if toks[r.model] is not None
     )
     net_verdict = ("PASS ✅ 助词 prototype net-token positive on every model"
                    if any_net else "FAIL ❌ a model nets negative — kill")
