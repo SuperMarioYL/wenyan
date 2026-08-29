@@ -335,3 +335,87 @@ def test_profile_degrades_on_reload_failure(monkeypatch):
     assert "qwen tokenizer unavailable" in out, (
         f"expected the qwen reload-failure warning; got:\n{out}"
     )
+
+
+# =========================================================================== #
+# fix-profile-nettoken-gate-false-pass-on-all-reload-fail (v0.6.0)            #
+#                                                                             #
+# After the v0.5.0 reload guard, `profile` rebuilds tokenizers into `toks`  #
+# and skips None rows in the table + the `any_net` loop:                      #
+# `any_net = all(... for r in available if toks[r.model] is not None)`.      #
+# When EVERY available tokenizer's table-build reload failed (all None —    #
+# the degenerate boundary the v0.5.0 reload fix made reachable), the filter  #
+# yielded nothing and `all([])` returned True, so `any_net = True` and the   #
+# command printed a false "PASS ... net-token positive on every model" — a   #
+# FALSE PASS on the §8 net-token kill-gate when NO model was measured. The     #
+# v0.6.0 fix guards the empty-measured set: print INDETERMINATE + exit       #
+# non-zero (SystemExit(2)), mirroring the variance gate's indeterminate exit. #
+# =========================================================================== #
+
+
+def test_profile_nettoken_gate_indeterminate_when_all_reloads_fail(monkeypatch):
+    """`wenyan profile` with ≥2 available tokenizers whose table-build reloads
+    ALL fail marks the net-token gate INDETERMINATE (not a false PASS).
+
+    Patches ``run_profile`` to return 3 available models with DIFFERING
+    per-prompt counts (so the variance gate PASSES and the run reaches the
+    net-token gate) and patches ``load_tokenizer`` to raise on EVERY repo's
+    reload — simulating all three table-build reloads failing (the degenerate
+    boundary of the v0.5.0 reload fix). Asserts the command exits 2 with an
+    INDETERMINATE net-token verdict and no false 'net-token positive on every
+    model' PASS and no traceback. Mutation-genuine: pre-fix `all([]) == True`
+    made ``any_net`` True → the false PASS.
+    """
+    import io
+    from unittest import mock
+    from click.testing import CliRunner
+    from rich.console import Console
+
+    import wenyan.cli as cli_mod
+    from wenyan.profiler import ProfileResult
+
+    buf = io.StringIO()
+    monkeypatch.setattr(cli_mod, "console", Console(file=buf, width=200))
+
+    # 3 available models with DIFFERING counts → variance_pct 100% (>5%, gate
+    # passes) so the run reaches the net-token gate instead of the variance FAIL.
+    def fake_profile(prompts, specs):
+        n = len(prompts)
+        return [
+            ProfileResult(
+                model="deepseek", repo="deepseek-ai/deepseek-coder-1.3b-base",
+                family="DeepSeek BBPE (32K)",
+                per_prompt_tokens=[20] * n, baseline_tokens=20 * n, available=True,
+            ),
+            ProfileResult(
+                model="qwen", repo="Qwen/Qwen2.5-0.5B", family="Qwen2 BBPE (151K)",
+                per_prompt_tokens=[15] * n, baseline_tokens=15 * n, available=True,
+            ),
+            ProfileResult(
+                model="glm", repo="zai-org/GLM-4-9B-0414", family="GLM-4 BBPE (151K)",
+                per_prompt_tokens=[10] * n, baseline_tokens=10 * n, available=True,
+            ),
+        ]
+
+    # Every table-build reload fails — the degenerate all-None case. With no
+    # measured model the pre-fix `all([]) == True` false-PASSed the net-token gate.
+    runner = CliRunner()
+    with mock.patch.object(cli_mod, "run_profile", side_effect=fake_profile), \
+         mock.patch.object(
+             cli_mod, "load_tokenizer",
+             side_effect=RuntimeError("simulated all-reloads-fail (HF outage)")):
+        result = runner.invoke(cli_mod.cli, ["profile", "--suite"])
+
+    out = buf.getvalue()
+    assert result.exit_code == 2, (
+        f"profile should exit 2 (net-token INDETERMINATE) when all reloads fail, "
+        f"got exit={result.exit_code}; exception={result.exception!r}; output:\n{out}"
+    )
+    assert "Traceback" not in out, f"profile leaked a traceback:\n{out}"
+    assert "INDETERMINATE" in out, f"expected an INDETERMINATE net-token verdict; got:\n{out}"
+    # the false §8 net-token PASS must NOT fire (all([])==True is not a real PASS)
+    assert "net-token positive on every model" not in out, (
+        f"false net-token PASS fired (the bug); got:\n{out}"
+    )
+    # all 3 reloads failed → 'unavailable' table rows
+    assert "unavailable" in out, f"expected unavailable table rows; got:\n{out}"

@@ -13,12 +13,12 @@ particles into their own subwords.
 
 | Class            | Particles                       |
 |------------------|---------------------------------|
-| structure        | 的 地 得                        |
-| aspect           | 了 着 过                         |
-| mood (final)     | 吧 啊 呢 呀 嘛 哈 嗯 哦 呗       |
+| structure        | 的 得                        |
+| aspect           | 了 着                         |
+| mood (final)     | 吧 啊 呢 呀 嘛 嗯 哦 呗       |
 | plural           | 们                              |
 
-`PARTICLES = frozenset("的了着过吧啊呢呀嘛哈嗯哦呗嗏的地得们")`
+`PARTICLES = frozenset("的了着吧啊呢呀嘛嗯哦呗嗏得们")`
 
 ## Rules
 
@@ -46,6 +46,6 @@ replaces with measured retry tokens):
 
 | Model    | Baseline | Compressed | Net saved |
 |----------|---------:|-----------:|----------:|
-| DeepSeek |      303 |        293 |       +10 |
-| Qwen     |      250 |        241 |        +9 |
-| GLM      |      243 |        238 |        +5 |
+| DeepSeek |      303 |        294 |       +9 |
+| Qwen     |      250 |        242 |        +8 |
+| GLM      |      243 |        239 |        +4 |

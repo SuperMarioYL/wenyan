@@ -28,9 +28,9 @@ wenyan **before** sending the prompt to the model.
 Strip low-load Chinese 助词 (particles) that carry little semantic load in
 coding prompts:
 
-- structure particles: 的 · 地 · 得
-- aspect markers: 了 · 着 · 过
-- sentence-final mood particles: 吧 · 啊 · 呢 · 呀 · 嘛 · 哈 · 嗯 · 哦 · 呗
+- structure particles: 的 · 得
+- aspect markers: 了 · 着
+- sentence-final mood particles: 吧 · 啊 · 呢 · 呀 · 嘛 · 嗯 · 哦 · 呗
 - plural marker: 们
 
 See [`strategies/particle_strip.md`](strategies/particle_strip.md) for the exact
@@ -43,9 +43,9 @@ without inflating the count; the m3 regression harness replaces the
 
 | Model    | Baseline | 助词_strip | Net saved |
 |----------|---------:|-----------:|----------:|
-| DeepSeek |      303 |        293 |       +10 |
-| Qwen     |      250 |        241 |        +9 |
-| GLM      |      243 |        238 |        +5 |
+| DeepSeek |      303 |        294 |       +9 |
+| Qwen     |      250 |        242 |        +8 |
+| GLM      |      243 |        239 |        +4 |
 
 ## How to apply (m1)
 

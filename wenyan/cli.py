@@ -171,12 +171,35 @@ def profile(prompt_path: str | None, suite: bool) -> None:
     if not gate_passed:
         raise SystemExit(1)
 
+    # v0.6.0 fix: guard the §8 net-token kill-gate against the all-reloads-fail
+    # degenerate case the v0.5.0 reload fix made reachable. When every available
+    # tokenizer's table-build reload failed (all `toks[r.model] is None`), the
+    # `any_net = all(... for r in available if toks[r.model] is not None)` filter
+    # yielded nothing, so `all([])` returned True and the command printed a false
+    # "PASS ✅ ... net-token positive on every model" — a FALSE PASS on the §8
+    # net-token kill-gate when NO model was actually measured. The variance gate
+    # above measured real variance from run_profile's first load, but this gate
+    # has nothing to measure on the reload. Mark INDETERMINATE and exit non-zero,
+    # mirroring the variance gate's indeterminate SystemExit(2) above and the
+    # v0.5.0 variance-FAIL SystemExit(1). (Reachable via the v0.5.0 reload-failure
+    # path the test test_profile_degrades_on_reload_failure exercises for 1-of-3;
+    # the all-reloads-fail case is the degenerate boundary it missed.)
+    measured = [r for r in available if toks[r.model] is not None]
+    if not measured:
+        console.print(Panel.fit(
+            f"need ≥1 tokenizer to measure net tokens; all {len(available)} "
+            "available reload(s) failed. net-token gate: INDETERMINATE — §8 "
+            "thesis not falsified, just unmeasurable (no model survived the "
+            "table-build reload).",
+            title="m1 kill-gate · net-token",
+            border_style="yellow",
+        ))
+        raise SystemExit(2)
     any_net = all(
         compute_regress(r.model, r.per_prompt_tokens,
                 [count_tokens(toks[r.model], particle_strip(p)) for p in prompts],
                 retry_cost_tokens=0).net_positive
-        for r in available
-        if toks[r.model] is not None
+        for r in measured
     )
     net_verdict = ("PASS ✅ 助词 prototype net-token positive on every model"
                    if any_net else "FAIL ❌ a model nets negative — kill")
